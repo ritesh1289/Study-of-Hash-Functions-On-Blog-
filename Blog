@@ -1,0 +1,364 @@
+                                                        //Study-of-Hash-Functions-On-Blog
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study of Hash Functions: RSHash - A Deep Dive</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --accent: #e74c3c;
+            --code-bg: #f4f4f4;
+            --code-border: #ddd;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        header {
+            text-align: center;
+            padding: 40px 20px 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M0,60 C300,120 900,0 1200,60 L1200,120 L0,120 Z" fill="white" /></svg>');
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: var(--primary);
+            border-bottom: none;
+            padding-bottom: 5px;
+            margin-top: 40px;
+            position: relative;
+            display: inline-block;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 20"><path d="M0,10 Q75,0 150,10 T300,10" stroke="var(--primary)" stroke-width="2" fill="none" /></svg>');
+            background-repeat: repeat-x;
+            background-size: 150px 20px;
+        }
+        .author {
+            font-style: italic;
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 0;
+        }
+        .toc {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px;
+        }
+        .toc h3 {
+            margin-top: 0;
+            color: var(--secondary);
+        }
+        .toc ul {
+            padding-left: 20px;
+        }
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        code {
+            background: var(--code-bg);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background: var(--code-bg);
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid var(--primary);
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        .animation-container {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px;
+            text-align: center;
+        }
+        #hash-animation {
+            font-family: monospace;
+            font-size: 18px;
+            min-height: 100px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid var(--code-border);
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+        }
+        .highlight {
+            background: #fffde7;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 20px 0;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .image-caption {
+            text-align: center;
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .content {
+            padding: 0 20px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Study of Hash Functions: RSHash</h1>
+            <p class="author">By Your Name • November 15, 2025 • 5 min read</p>
+        </header>
+        <div class="content">
+            <div class="toc">
+                <h3>Table of Contents</h3>
+                <ul>
+                    <li><a href="#intro">Introduction to Hash Functions</a></li>
+                    <li><a href="#rs-hash">What is RSHash?</a></li>
+                    <li><a href="#how-it-works">How RSHash Works</a></li>
+                    <li><a href="#animation">RSHash Animation</a></li>
+                    <li><a href="#properties">Properties of RSHash</a></li>
+                    <li><a href="#use-cases">Use Cases</a></li>
+                    <li><a href="#code">Example in C</a></li>
+                    <li><a href="#conclusion">Conclusion</a></li>
+                </ul>
+            </div>
+            <main>
+                <section id="intro">
+                    <h2>Introduction to Hash Functions</h2>
+                    <img src="https://via.placeholder.com/800x400?text=Hash+Function+Diagram" alt="Hash Function Diagram">
+                    <p class="image-caption">Figure 1: A generic hash function mapping input to output.</p>
+                    <p>
+                        Hash functions are essential in computer science, used for data retrieval, checksums, fingerprints, and cryptography.
+                        A good hash function maps data of arbitrary size to fixed-size values, ideally with minimal collisions and uniform distribution.
+                    </p>
+                </section>
+                <section id="rs-hash">
+                    <h2>What is RSHash?</h2>
+                    <img src="https://via.placeholder.com/800x400?text=RSHash+Algorithm" alt="RSHash Algorithm">
+                    <p class="image-caption">Figure 2: RSHash algorithm overview.</p>
+                    <p>
+                        <strong>RSHash</strong> is a simple, non-cryptographic hash function created by Robert Sedgewick.
+                        It is known for its simplicity and decent distribution, making it suitable for hash tables and checksums.
+                    </p>
+                </section>
+                <section id="how-it-works">
+                    <h2>How RSHash Works</h2>
+                    <img src="https://via.placeholder.com/800x400?text=RSHash+Step-by-Step" alt="RSHash Step-by-Step">
+                    <p class="image-caption">Figure 3: Step-by-step process of RSHash.</p>
+                    <p>
+                        RSHash uses a combination of bitwise operations and multiplication by a large prime number.
+                        The algorithm is as follows:
+                    </p>
+                    <pre>
+unsigned int RSHash(const char* str, unsigned int length) {
+    unsigned int b    = 378551;
+    unsigned int a    = 63689;
+    unsigned int hash = 0;
+    for (unsigned int i = 0; i &lt; length; i++) {
+        hash = hash * a + str[i];
+        a    = a * b;
+    }
+    return hash;
+}</pre>
+                    <p>
+                        Here, <code>a</code> and <code>b</code> are constants chosen for their properties in mixing bits.
+                        The function iterates over each character, updating the hash value.
+                    </p>
+                </section>
+                <section id="animation">
+                    <h2>RSHash Animation</h2>
+                    <p>
+                        Let's visualize how RSHash processes the string <code>"hash"</code>:
+                    </p>
+                    <div class="animation-container">
+                        <div id="hash-animation">
+                            Initial hash: <span class="highlight" id="hash-value">0</span><br>
+                            a: <span id="a-value">63689</span>, b: 378551<br>
+                            String: <span id="string-value">h a s h</span>
+                        </div>
+                        <div class="controls">
+                            <button onclick="startAnimation()">Start Animation</button>
+                            <button onclick="resetAnimation()">Reset</button>
+                        </div>
+                    </div>
+                </section>
+                <section id="properties">
+                    <h2>Properties of RSHash</h2>
+                    <img src="https://via.placeholder.com/800x400?text=Hash+Function+Properties" alt="Hash Function Properties">
+                    <p class="image-caption">Figure 4: Properties of a good hash function.</p>
+                    <ul>
+                        <li><strong>Deterministic:</strong> Same input always produces the same output.</li>
+                        <li><strong>Fast:</strong> Simple operations make it quick to compute.</li>
+                        <li><strong>Non-cryptographic:</strong> Not suitable for security-sensitive applications.</li>
+                        <li><strong>Good distribution:</strong> Minimizes collisions for typical use cases.</li>
+                    </ul>
+                </section>
+                <section id="use-cases">
+                    <h2>Use Cases</h2>
+                    <img src="https://via.placeholder.com/800x400?text=Hash+Function+Use+Cases" alt="Hash Function Use Cases">
+                    <p class="image-caption">Figure 5: Common use cases for hash functions.</p>
+                    <p>
+                        RSHash is often used in:
+                    </p>
+                    <ul>
+                        <li>Hash tables</li>
+                        <li>Checksums</li>
+                        <li>Data integrity checks</li>
+                    </ul>
+                </section>
+                <section id="code">
+                    <h2>Example in C</h2>
+                    <img src="https://via.placeholder.com/800x400?text=C+Code+Example" alt="C Code Example">
+                    <p class="image-caption">Figure 6: RSHash implementation in C.</p>
+                    <p>
+                        Here’s how you can implement RSHash in C:
+                    </p>
+                    <pre>
+#include &lt;stdio.h&gt;
+unsigned int RSHash(const char* str, unsigned int length) {
+    unsigned int b = 378551;
+    unsigned int a = 63689;
+    unsigned int hash = 0;
+    for (unsigned int i = 0; i &lt; length; i++) {
+        hash = hash * a + str[i];
+        a = a * b;
+    }
+    return hash;
+}
+int main() {
+    const char* text = "Hello, World!";
+    unsigned int hash = RSHash(text, 13);
+    printf("Hash of '%s' is %u\n", text, hash);
+    return 0;
+}</pre>
+                </section>
+                <section id="conclusion">
+                    <h2>Conclusion</h2>
+                    <img src="https://via.placeholder.com/800x400?text=Conclusion+and+Summary" alt="Conclusion and Summary">
+                    <p class="image-caption">Figure 7: Summary of RSHash.</p>
+                    <p>
+                        RSHash is a classic example of a simple, effective hash function.
+                        While not cryptographically secure, it is widely used in non-security contexts due to its speed and simplicity.
+                    </p>
+                </section>
+            </main>
+            <footer>
+                <p>© 2025 Your Name. All rights reserved.</p>
+                <p>Follow me on <a href="#">Twitter</a> and <a href="#">GitHub</a> for more articles.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        const string = "hash";
+        let hash = 0;
+        let a = 63689;
+        const b = 378551;
+        let currentIndex = 0;
+        function updateDisplay() {
+            document.getElementById('hash-value').textContent = hash;
+            document.getElementById('a-value').textContent = a;
+            const stringDisplay = string.split('').map((c, i) =>
+                i < currentIndex ? <span class="highlight">${c}</span> : c
+            ).join(' ');
+            document.getElementById('string-value').innerHTML = stringDisplay;
+        }
+        function stepAnimation() {
+            if (currentIndex >= string.length) {
+                clearInterval(animationInterval);
+                return;
+            }
+            hash = hash * a + string.charCodeAt(currentIndex);
+            a = a * b;
+            currentIndex++;
+            updateDisplay();
+        }
+        let animationInterval;
+        function startAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            currentIndex = 0;
+            hash = 0;
+            a = 63689;
+            updateDisplay();
+            animationInterval = setInterval(stepAnimation, 1000);
+        }
+        function resetAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            currentIndex = 0;
+            hash = 0;
+            a = 63689;
+            updateDisplay();
+        }
+    </script>
+</body>
+</html> can you add picture wait i send you the pictures
